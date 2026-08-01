@@ -68,17 +68,8 @@ import java.util.Locale
 @Composable
 fun CallDetailsScreen(
     callWithContact: CallWithContact?,
-    allContacts: List<Contact>,
     onBackClick: () -> Unit,
     onCallClick: (String) -> Unit,
-    onSaveCallRecord: (
-        recordId: Long,
-        phoneNumber: String,
-        contactId: Long?,
-        callType: CallType,
-        timestamp: Long,
-        durationSeconds: Int
-    ) -> Unit,
     onDeleteCallRecord: (CallRecord) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -88,8 +79,6 @@ fun CallDetailsScreen(
         }
         return
     }
-
-    var showEditDialog by remember { mutableStateOf(false) }
 
     val record = callWithContact.callRecord
     val contact = callWithContact.contact
@@ -120,9 +109,6 @@ fun CallDetailsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showEditDialog = true }, modifier = Modifier.testTag("edit_call_record_icon")) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit call record")
-                    }
                     IconButton(onClick = { onDeleteCallRecord(record) }, modifier = Modifier.testTag("delete_call_record_icon")) {
                         Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete call record", tint = MaterialTheme.colorScheme.error)
                     }
@@ -183,41 +169,20 @@ fun CallDetailsScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Action buttons (Call, Message, Edit)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // Call Action Button
+                    Surface(
+                        onClick = { onCallClick(callWithContact.displayPhoneNumber) },
+                        shape = CircleShape,
+                        color = PhoneGreenPrimary,
+                        modifier = Modifier.size(56.dp)
                     ) {
-                        Surface(
-                            onClick = { onCallClick(callWithContact.displayPhoneNumber) },
-                            shape = CircleShape,
-                            color = PhoneGreenPrimary,
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Call,
-                                    contentDescription = "Call",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
-
-                        Surface(
-                            onClick = { showEditDialog = true },
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit record",
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Call,
+                                contentDescription = "Call",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
                     }
                 }
@@ -247,8 +212,7 @@ fun CallDetailsScreen(
 
                     DetailRow(
                         label = "Direction",
-                        value = callDirectionName,
-                        leadingContent = { CallDirectionIcon(callType = record.callType, size = 20.dp) }
+                        value = callDirectionName
                     )
 
                     DetailRow(
@@ -268,44 +232,16 @@ fun CallDetailsScreen(
                 }
             }
 
-            // Edit / Delete Buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            // Delete Button
+            OutlinedButton(
+                onClick = { onDeleteCallRecord(record) },
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Button(
-                    onClick = { showEditDialog = true },
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("edit_record_button")
-                ) {
-                    Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Edit Record")
-                }
-
-                OutlinedButton(
-                    onClick = { onDeleteCallRecord(record) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Delete")
-                }
+                Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Delete Call Record")
             }
-        }
-
-        if (showEditDialog) {
-            EditCallRecordDialog(
-                initialRecord = record,
-                contacts = allContacts,
-                onDismiss = { showEditDialog = false },
-                onSave = { recordId, phoneNumber, contactId, callType, timestamp, durationSeconds ->
-                    onSaveCallRecord(recordId, phoneNumber, contactId, callType, timestamp, durationSeconds)
-                    showEditDialog = false
-                }
-            )
         }
     }
 }

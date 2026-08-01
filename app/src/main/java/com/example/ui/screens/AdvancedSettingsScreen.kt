@@ -47,6 +47,7 @@ import com.example.data.model.CallRecord
 import com.example.data.model.CallType
 import com.example.data.model.CallWithContact
 import com.example.data.model.Contact
+import com.example.ui.components.BulkCallDialog
 import com.example.ui.components.CallDirectionIcon
 import com.example.ui.components.ContactAvatar
 import com.example.ui.components.EditCallRecordDialog
@@ -65,11 +66,13 @@ fun AdvancedSettingsScreen(
         timestamp: Long,
         durationSeconds: Int
     ) -> Unit,
+    onSaveBulkCalls: (rawNumbersText: String, callType: CallType) -> Unit,
     onDeleteCallRecord: (CallRecord) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var recordToEdit by remember { mutableStateOf<CallRecord?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
+    var showBulkDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -81,8 +84,11 @@ fun AdvancedSettingsScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showBulkDialog = true }, modifier = Modifier.testTag("bulk_call_icon_btn")) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Bulk Add Calls")
+                    }
                     IconButton(onClick = { showAddDialog = true }, modifier = Modifier.testTag("add_call_record_icon")) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add Call Record")
+                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Add Single Record")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -97,7 +103,7 @@ fun AdvancedSettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Header card explaining call management
+            // Header card explaining call management & bulk calls
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -116,18 +122,31 @@ fun AdvancedSettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Manually adjust call parameters, dates, hours, minutes, durations, and contacts. Changes update immediately across all call views.",
+                        text = "Manually adjust call parameters, timestamps, or bulk log multiple phone numbers separated by commas or semicolons with staggered timestamps.",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    Button(
-                        onClick = { showAddDialog = true },
-                        modifier = Modifier.testTag("new_record_management_btn")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Add Record")
+                        Button(
+                            onClick = { showBulkDialog = true },
+                            modifier = Modifier.testTag("bulk_add_calls_btn")
+                        ) {
+                            Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Bulk Add Calls")
+                        }
+                        Button(
+                            onClick = { showAddDialog = true },
+                            modifier = Modifier.testTag("new_record_management_btn")
+                        ) {
+                            Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Add Single")
+                        }
                     }
                 }
             }
@@ -157,6 +176,16 @@ fun AdvancedSettingsScreen(
                     }
                 }
             }
+        }
+
+        if (showBulkDialog) {
+            BulkCallDialog(
+                onDismiss = { showBulkDialog = false },
+                onSaveBulk = { rawNumbersText, callType ->
+                    onSaveBulkCalls(rawNumbersText, callType)
+                    showBulkDialog = false
+                }
+            )
         }
 
         if (showAddDialog) {
