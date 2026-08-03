@@ -1,0 +1,6 @@
+{
+  "name": "Phone",
+  "description": "Clean modern Phone & Contacts app with call logs, advanced settings, and update checker.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

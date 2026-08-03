@@ -208,14 +208,6 @@ fun RecentCallItem(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                Text(
-                    text = if (isMissed) "Duration: 00:00" else "Duration: ${item.formattedDuration}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                )
             }
 
             // Quick Call Icon & Info Icon

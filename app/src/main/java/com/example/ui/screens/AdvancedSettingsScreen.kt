@@ -25,6 +25,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -68,8 +69,11 @@ fun AdvancedSettingsScreen(
     ) -> Unit,
     onSaveBulkCalls: (rawNumbersText: String, callType: CallType) -> Unit,
     onDeleteCallRecord: (CallRecord) -> Unit,
+    simulatedVersionCode: Int = 2,
+    onSetSimulatedVersionCode: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+
     var recordToEdit by remember { mutableStateOf<CallRecord?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showBulkDialog by remember { mutableStateOf(false) }
@@ -151,7 +155,52 @@ fun AdvancedSettingsScreen(
                 }
             }
 
+            // Update Server Simulation Card
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "Update Server Simulation",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Simulate what version the remote API / APKPure server reports when 'Check for Updates' is tapped in Settings:",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        FilterChip(
+                            selected = simulatedVersionCode == 2,
+                            onClick = { onSetSimulatedVersionCode(2) },
+                            label = { Text("v1.1.0 (New Available)") },
+                            modifier = Modifier.testTag("sim_version_v1_1")
+                        )
+                        FilterChip(
+                            selected = simulatedVersionCode == 1,
+                            onClick = { onSetSimulatedVersionCode(1) },
+                            label = { Text("v1.0.0 (Up To Date)") },
+                            modifier = Modifier.testTag("sim_version_v1_0")
+                        )
+                    }
+                }
+            }
+
             if (recentCalls.isEmpty()) {
+
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -258,7 +307,7 @@ fun AdvancedRecordItem(
                     CallDirectionIcon(callType = item.callRecord.callType, size = 14.dp)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "$dateStr • ${item.formattedDuration}",
+                        text = dateStr,
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

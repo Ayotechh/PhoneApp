@@ -82,6 +82,9 @@ fun PhoneApp(viewModel: PhoneViewModel = viewModel()) {
     val contactSearchQuery by viewModel.contactSearchQuery.collectAsStateWithLifecycle()
 
     val isDarkMode by viewModel.isDarkMode.collectAsStateWithLifecycle()
+    val updateStatus by viewModel.updateStatus.collectAsStateWithLifecycle()
+    val targetServerVersionCode by viewModel.targetServerVersionCode.collectAsStateWithLifecycle()
+
 
     // Navigation overlay states
     var isAdvancedSettingsOpen by remember { mutableStateOf(false) }
@@ -122,10 +125,13 @@ fun PhoneApp(viewModel: PhoneViewModel = viewModel()) {
             },
             onSaveBulkCalls = { raw, type -> viewModel.bulkAddCalls(raw, type) },
             onDeleteCallRecord = { record -> viewModel.deleteCallRecord(record) },
+            simulatedVersionCode = targetServerVersionCode,
+            onSetSimulatedVersionCode = { code -> viewModel.setTargetServerVersionCode(code) },
             modifier = Modifier.fillMaxSize()
         )
         return
     }
+
 
     // Main App Shell with Bottom Navigation
     Scaffold(
@@ -238,9 +244,13 @@ fun PhoneApp(viewModel: PhoneViewModel = viewModel()) {
                             isDarkMode = isDarkMode,
                             onToggleDarkMode = { viewModel.toggleDarkMode() },
                             onClearCallHistory = { viewModel.clearCallHistory() },
-                            onOpenAdvancedSettings = { isAdvancedSettingsOpen = true }
+                            onOpenAdvancedSettings = { isAdvancedSettingsOpen = true },
+                            updateStatus = updateStatus,
+                            onCheckForUpdates = { viewModel.checkForUpdates() },
+                            onDismissUpdateStatus = { viewModel.dismissUpdateStatus() }
                         )
                     }
+
                 }
             }
         }

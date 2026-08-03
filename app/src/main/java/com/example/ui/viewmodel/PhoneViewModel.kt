@@ -105,15 +105,13 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Selected Call Detail
-    val selectedCallDetail: StateFlow<CallWithContact?> = _selectedCallId.map { id ->
+    val selectedCallDetail: StateFlow<CallWithContact?> = combine(
+        _selectedCallId,
+        repository.allCallsWithContacts
+    ) { id, list ->
         if (id == null) null
-        else repository.allCallsWithContacts.map { list -> list.find { it.callRecord.id == id } }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null).let { stateFlow ->
-        // Direct combination for current selectedCallId
-        combine(_selectedCallId, repository.allCallsWithContacts) { id, list ->
-            id?.let { callId -> list.find { it.callRecord.id == callId } }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-    }
+        else list.find { it.callRecord.id == id }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     // Contacts State & Search
     private val _contactSearchQuery = MutableStateFlow("")
@@ -122,7 +120,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     val filteredContacts: StateFlow<List<Contact>> = combine(
         allContacts,
         _contactSearchQuery
-    ) { contacts, query ->
+    ) { contacts: List<Contact>, query: String ->
         if (query.isBlank()) contacts
         else contacts.filter {
             it.name.contains(query, ignoreCase = true) || it.phoneNumber.contains(query)
@@ -208,9 +206,15 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         val current = _activeCallState.value
         if (current != null) {
             viewModelScope.launch {
-                repository.placeCall(
-                    phoneNumber = current.phoneNumber,
-                    durationSeconds = current.durationSeconds
+                val matchingContact = repository.getContactByNumber(current.phoneNumber)
+                repository.insertCallRecord(
+                    CallRecord(
+                        phoneNumber = current.phoneNumber,
+                        contactId = matchingContact?.id,
+                        callType = CallType.OUTGOING,
+                        timestamp = System.currentTimeMillis(),
+                        durationSeconds = current.durationSeconds
+                    )
                 )
                 _activeCallState.value = null
                 _dialedNumber.value = ""
@@ -346,7 +350,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearCallHistory() {
         viewModelScope.launch {
-            repository.clearCallHistory()
+            repository.clearAllCallRecords()
             _selectedCallId.value = null
         }
     }
@@ -354,4 +358,59 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleDarkMode() {
         _isDarkMode.value = !_isDarkMode.value
     }
+
+    // Update Checker Functionality
+    val currentVersionCode: Int = 1
+    val currentVersionName: String = "1.0.0"
+
+    private val _targetServerVersionCode = MutableStateFlow(2) // Default remote code = 2 (v1.1.0)
+    val targetServerVersionCode: StateFlow<Int> = _targetServerVersionCode.asStateFlow()
+
+    private val _updateStatus = MutableStateFlow<UpdateStatus>(UpdateStatus.Idle)
+    val updateStatus: StateFlow<UpdateStatus> = _updateStatus.asStateFlow()
+
+    fun setTargetServerVersionCode(code: Int) {
+        _targetServerVersionCode.value = code
+    }
+
+    fun checkForUpdates() {
+        viewModelScope.launch {
+            _updateStatus.value = UpdateStatus.Checking
+            delay(1200) // Simulate live REST API check
+
+            val remoteVersionCode = _targetServerVersionCode.value
+            if (remoteVersionCode > currentVersionCode) {
+                val info = UpdateInfo(
+                    versionName = if (remoteVersionCode == 2) "1.1.0" else "2.0.0",
+                    versionCode = remoteVersionCode,
+                    releaseNotes = "• Added bulk call logging support in Advanced Settings\n• Cleaned call details viewer (phone app standard)\n• Optimized call log timestamps\n• APKPure distribution readiness",
+                    downloadUrl = "https://apkpure.com/phone-app/com.example.phone"
+                )
+                _updateStatus.value = UpdateStatus.UpdateAvailable(info, currentVersionName)
+            } else {
+                _updateStatus.value = UpdateStatus.UpToDate(currentVersionName)
+            }
+        }
+    }
+
+    fun dismissUpdateStatus() {
+        _updateStatus.value = UpdateStatus.Idle
+    }
 }
+
+data class UpdateInfo(
+    val versionName: String,
+    val versionCode: Int,
+    val releaseNotes: String,
+    val downloadUrl: String,
+    val isMandatory: Boolean = false
+)
+
+sealed interface UpdateStatus {
+    object Idle : UpdateStatus
+    object Checking : UpdateStatus
+    data class UpToDate(val currentVersionName: String) : UpdateStatus
+    data class UpdateAvailable(val updateInfo: UpdateInfo, val currentVersionName: String) : UpdateStatus
+    data class Error(val message: String) : UpdateStatus
+}
+
